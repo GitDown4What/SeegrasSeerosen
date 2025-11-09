@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Seerosen-Simulation</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    <style>
+       body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #87ceeb;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-around;
+        align-items: center;
+        height: 100vh;
+      }
+      .container {
+	  width: 50%;
+        position: relative;
+        flex: 1;
+        height: 100%;
+      }
+      .controls {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        gap: 10px;
+      }
+	  .days {
+	    font-family: Bahnschrift;
+		font-size: 36px;
+		color: #222;
+	  }
+	  .amount {
+	    font-family: Bahnschrift;
+		font-size: 36px;
+		color: #222;
+	  }
+
+      button {
+        font-size: 24px;
+        padding: 6px 34px;
+        border: none;
+        border-radius: 8px;
+        background: #4caf50;
+        color: white;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+        transition: background 0.2s;
+      }
+      button:hover {
+        background: #45a049;
+      }
+    </style>
+  </head>
+  <body>
+  <div class="container" id="lilies">
+    <div class="controls">
+      <button class="minus">−</button>
+	  <div class="labels">
+      <span class="days">Tage: 0</span><br>
+	  <span class="amount">Seerosen: 0</span>
+	  </div>
+      <button class="plus">+</button>
+    </div>
+</div>
+<div class = "container" id = "seaweed">
+	<div class="controls">
+      <button class="minus">−</button>
+	  <div class="labels">
+      <span class="days">Tage: 0</span><br>
+	  <span class="amount">Seegras: 0</span>
+	  </div>
+      <button class="plus">+</button>
+    </div>
+</div>
+    <script>
+	  
+	class LakeSim {
+		constructor(parentId, plantimage, growth, startdays = 0, startlilies = 1) {
+			this.parentId = parentId;
+			this.days = startdays;
+			this.numLilies = startlilies;
+			this.lilyPositions = [];
+			this.radius;
+			this.plantimage = plantimage
+		
+		    const container = document.querySelector(`#${parentId}`);
+			this.plusBtn = container.querySelector(".plus");
+			this.minusBtn = container.querySelector(".minus");
+			this.dayLabel = container.querySelector(".days");
+			this.countLabel = container.querySelector(".amount");
+
+			if (growth == "exp"){
+				this.plusBtn.addEventListener("click", () =>
+					this.adjustLiliesExp(this.days + 1)
+				);
+				this.minusBtn.addEventListener("click", () =>
+					this.adjustLiliesExp(this.days - 1)
+				);
+			} else {
+				this.plusBtn.addEventListener("click", () =>
+					this.adjustLiliesLinear(this.days + 1)
+				);
+				this.minusBtn.addEventListener("click", () =>
+					this.adjustLiliesLinear(this.days - 1)
+				);
+			}
+		}
+  
+		setup(p) {
+			this.p = p
+			this.radius = Math.min(p.width, p.height) * 0.35; // Seegröße relativ zum Fenster
+			this.generateLilies(this.numLilies);
+			this.updateCounter();
+		}
+
+		draw(p) {
+			p.background(135, 206, 235); // Himmelblau
+			p.translate(p.width / 2, p.height / 2);
+
+			// See zeichnen
+			p.fill(0, 100, 200);
+			p.noStroke();
+			p.ellipse(0, 0, this.radius * 2);
+
+			p.imageMode(p.CENTER);
+
+			// Seerosen zeichnen
+			for (let pos of this.lilyPositions) {
+				p.image(this.plantimage, pos.x, pos.y, 30, 30);
+			}
+		}
+
+		generateLilies(n) {
+			this.lilyPositions = [];
+			for (let i = 0; i < n; i++) {
+				this.lilyPositions.push(this.evenlyDistributedPosition(i, n));
+			}
+		}
+
+		adjustLiliesExp(newNum) {
+			newNum = Math.max(0, Math.min(newNum, 20));
+			if (2**newNum > this.numLilies) {
+				for (let i = this.numLilies; i < 2**newNum; i++) {
+					this.lilyPositions.push(this.evenlyDistributedPosition(i+1, 2**newNum));
+				}
+			} else if (2**newNum < this.numLilies) {
+				this.lilyPositions.splice(2**newNum);
+			}
+			this.numLilies = 2**newNum;
+			this.days = newNum;
+			this.updateCounter();
+		}
+		
+		adjustLiliesLinear(newNum) {
+			let factor = 100;
+			newNum = Math.max(0, Math.min(newNum, 20));
+			if (newNum*factor > this.numLilies) {
+				for (let i = this.numLilies; i < newNum*factor; i++) {
+					this.lilyPositions.push(this.evenlyDistributedPosition(i+1, newNum*factor));
+				}
+			} else if (newNum*factor < this.numLilies) {
+				this.lilyPositions.splice(newNum*factor);
+			}
+			this.numLilies = newNum*factor;
+			this.days = newNum;
+			this.updateCounter();
+		}
+
+		updateCounter() {
+			this.dayLabel.textContent = "Tage: " + this.days;
+			if (this.parentId == "lilies") {
+				this.countLabel.textContent = "Seerosen: " + this.numLilies;
+			}
+			if (this.parentId == "seaweed") {
+				this.countLabel.textContent = "Seegras: " + this.numLilies;
+			}
+		}
+
+		evenlyDistributedPosition(i, total) {
+			const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+			let angle = i * Math.random(2*Math.PI);
+			let r = 0.1 *this.radius * (Math.log(total)*Math.random(1));
+			if (total<9) {
+				r = r = 0.09*this.radius+Math.random(0.2);
+				angle = i * goldenAngle;
+			}
+			if (total == 1) {
+				r = 0;
+			}
+			console.log(i, total,r, angle);
+			const x = r * Math.cos(angle);
+			const y = r * Math.sin(angle);
+		
+			return { x, y };
+		}
+	}
+	  
+	const sims = [];
+	function makeSketch(containerId) {
+        return function (p) {
+          let sim;
+		  let lilyImage;
+		  let seaweedImage;
+		  
+		  p.preload = function () {
+			lilyImage = p.loadImage("https://cdn.creazilla.com/cliparts/3227374/water-lily-clipart-xl.png");
+			seaweedImage = p.loadImage("https://cdn.creazilla.com/cliparts/15753/wakame-seaweed-clipart-original.png");
+		};
+		  
+          p.setup = function () {
+            const c = p.createCanvas(window.innerWidth / 2, window.innerHeight);
+            c.parent(containerId);
+			
+			if (containerId == "lilies") {
+				sim = new LakeSim(containerId, lilyImage, "exp");
+			} else {
+				sim = new LakeSim(containerId, seaweedImage, "linear");
+			}
+            sim.setup(p);
+            sims.push(sim);
+          };
+          p.draw = function () {
+            sim.draw(p);
+          };
+          p.windowResized = function () {
+            p.resizeCanvas(window.innerWidth / 2, window.innerHeight);
+            sim.radius = Math.min(p.width, p.height) * 0.35;
+          };
+        };
+      }
+	  
+	let lilySketch = new p5(makeSketch("lilies"));
+    let seaweedsketch = new p5(makeSketch("seaweed"));
+
+    </script>
+  </body>
+</html>
