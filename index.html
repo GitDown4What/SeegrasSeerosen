@@ -28,15 +28,16 @@
         transform: translateX(-50%);
         display: flex;
         gap: 10px;
+		width: max-content;
       }
 	  .days {
 	    font-family: Bahnschrift;
-		font-size: 36px;
+		font-size: 1.5em;
 		color: #222;
 	  }
 	  .amount {
 	    font-family: Bahnschrift;
-		font-size: 36px;
+		font-size: 1.5em;
 		color: #222;
 	  }
 
@@ -80,13 +81,15 @@
     <script>
 	  
 	class LakeSim {
-		constructor(parentId, plantimage, growth, startdays = 0, startlilies = 1) {
+		constructor(parentId, plantImage, growth, startDays = 0, startLilies = 1) {
 			this.parentId = parentId;
-			this.days = startdays;
-			this.numLilies = startlilies;
+			this.days = startDays;
+			this.startLilies = startLilies;
+			this.numLilies = startLilies;
 			this.lilyPositions = [];
 			this.radius;
-			this.plantimage = plantimage
+			this.plantImage = plantImage;
+			this.growth = growth;
 		
 		    const container = document.querySelector(`#${parentId}`);
 			this.plusBtn = container.querySelector(".plus");
@@ -94,21 +97,12 @@
 			this.dayLabel = container.querySelector(".days");
 			this.countLabel = container.querySelector(".amount");
 
-			if (growth == "exp"){
-				this.plusBtn.addEventListener("click", () =>
-					this.adjustLiliesExp(this.days + 1)
-				);
-				this.minusBtn.addEventListener("click", () =>
-					this.adjustLiliesExp(this.days - 1)
-				);
-			} else {
-				this.plusBtn.addEventListener("click", () =>
-					this.adjustLiliesLinear(this.days + 1)
-				);
-				this.minusBtn.addEventListener("click", () =>
-					this.adjustLiliesLinear(this.days - 1)
-				);
-			}
+			this.plusBtn.addEventListener("click", () =>
+				this.adjustLilies(this.days + 1)
+			);
+			this.minusBtn.addEventListener("click", () =>
+				this.adjustLilies(this.days - 1)
+			);
 		}
   
 		setup(p) {
@@ -131,7 +125,7 @@
 
 			// Seerosen zeichnen
 			for (let pos of this.lilyPositions) {
-				p.image(this.plantimage, pos.x, pos.y, 30, 30);
+				p.image(this.plantImage, pos.x, pos.y, 30, 30);
 			}
 		}
 
@@ -142,32 +136,22 @@
 			}
 		}
 
-		adjustLiliesExp(newNum) {
-			newNum = Math.max(0, Math.min(newNum, 20));
-			if (2**newNum > this.numLilies) {
-				for (let i = this.numLilies; i < 2**newNum; i++) {
-					this.lilyPositions.push(this.evenlyDistributedPosition(i+1, 2**newNum));
-				}
-			} else if (2**newNum < this.numLilies) {
-				this.lilyPositions.splice(2**newNum);
+		adjustLilies(newDays) {
+			newDays = Math.max(0, Math.min(newDays, 20));
+			let newNum = this.startLilies + 100*newDays;
+			if (this.growth == "exp") {
+				newNum = this.startLilies * 2**newDays;
 			}
-			this.numLilies = 2**newNum;
-			this.days = newNum;
-			this.updateCounter();
-		}
-		
-		adjustLiliesLinear(newNum) {
-			let factor = 100;
-			newNum = Math.max(0, Math.min(newNum, 20));
-			if (newNum*factor > this.numLilies) {
-				for (let i = this.numLilies; i < newNum*factor; i++) {
-					this.lilyPositions.push(this.evenlyDistributedPosition(i+1, newNum*factor));
+			
+			if ( newNum > this.numLilies) {
+				for (let i = this.numLilies; i < newNum; i++) {
+					this.lilyPositions.push(this.evenlyDistributedPosition(i+1, newNum));
 				}
-			} else if (newNum*factor < this.numLilies) {
-				this.lilyPositions.splice(newNum*factor);
+			} else if (newNum < this.numLilies) {
+				this.lilyPositions.splice(newNum);
 			}
-			this.numLilies = newNum*factor;
-			this.days = newNum;
+			this.numLilies = newNum;
+			this.days = newDays;
 			this.updateCounter();
 		}
 
@@ -186,7 +170,7 @@
 			let angle = i * Math.random(2*Math.PI);
 			let r = 0.1 *this.radius * (Math.log(total)*Math.random(1));
 			if (total<9) {
-				r = r = 0.09*this.radius+Math.random(0.2);
+				r = r = 0.15*this.radius+Math.random(0.2);
 				angle = i * goldenAngle;
 			}
 			if (total == 1) {
@@ -208,8 +192,8 @@
 		  let seaweedImage;
 		  
 		  p.preload = function () {
-			lilyImage = p.loadImage("seerose.png");
-			seaweedImage = p.loadImage("seegras.png");
+			lilyImage = p.loadImage("https://cdn.creazilla.com/cliparts/3227374/water-lily-clipart-xl.png");
+			seaweedImage = p.loadImage("https://cdn.creazilla.com/cliparts/15753/wakame-seaweed-clipart-original.png");
 		};
 		  
           p.setup = function () {
@@ -240,4 +224,3 @@
     </script>
   </body>
 </html>
-
